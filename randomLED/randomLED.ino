@@ -4,11 +4,12 @@ const int maxLEDPin = 7 ;
 
 const int sampleWindow = 50 ;
 unsigned int sample ;
+unsigned int activeCount = 0 ;
+unsigned long lastTrigger ;
 
+int counter = 0 ;
 int buttonState = 0 ;
 int randPin = 0 ;
-int alreadyActive = 0 ;
-
 void setup() {
   pinMode(sensorPin, INPUT) ;
   turnOff() ;
@@ -19,25 +20,39 @@ void loop(){
   
   unsigned int signalMax = 0 ;
   unsigned int signalMin = 1024 ;
-  
+  turnOff() ;
   //collect data for 50 ms
   while (millis() - startMillis < sampleWindow)
   {
     sample = analogRead(2) ;
-    //Serial.println(sample) ;
     if (sample < 1024) // dump spurious readings
     {
       signalMax = max(signalMax, sample) ;
       signalMin = min(signalMin, sample) ;
     }
   }
-  peakToPeak = signalMax - signalMin ; // get the delta 
-  if (peakToPeak > 10)
-  {
-    activateRandomLEDs() ;
-    delay(sampleWindow * 3) ;
-  }
-  turnOff() ;
+  
+    peakToPeak = signalMax - signalMin ; // get the delta 
+    if (peakToPeak > 10)
+    {
+      if (activeCount == 0)
+      {
+        lastTrigger = millis() ;
+        activateRandomLEDs() ;
+      }
+      activeCount += 1 ;
+      
+    } 
+    if (activeCount > 3) {
+       activeCount = 0 ;
+    }
+    if (millis() - lastTrigger > sampleWindow * 3)
+    {
+      activeCount = 0 ;
+    }
+    //alreadyActive = false ;
+ 
+  
 }
 void turnOff(){
    for (int i = minLEDPin; i <= maxLEDPin ; i++) {
@@ -54,4 +69,12 @@ void activateRandomLEDs()
       digitalWrite(i,HIGH) ;
     }
   }
+  delay(sampleWindow * 3) ;
+}
+void flash()
+{
+  for (int i = minLEDPin ; i <= maxLEDPin ; i++) {
+    digitalWrite(i,HIGH) ;
+  }
+  delay(sampleWindow * 10) ;
 }
